@@ -1,0 +1,2086 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SE2026 Meeting Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,500&family=DM+Sans:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@400;600;700;800;900&family=Caveat:wght@600;700&family=Fredoka+One&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style id="base-styles">
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    button{cursor:pointer;font-family:inherit}
+    input,select,textarea{font-family:inherit}
+
+    :root {
+      --cream: #FAF8F3;
+      --beige: #F5EFE0;
+      --blush: #FAF0EE;
+      --sage-bg: #EEF5EE;
+      --border: #EDE0D8;
+      --text-main: #2D2D3A;
+      --text-soft: #9A9AAA;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow-md: 0 6px 24px rgba(0,0,0,0.10);
+      --shadow-lg: 0 16px 48px rgba(0,0,0,0.14);
+
+      /* ── Homepage theme tokens (overridden by JS) ── */
+      --hp-bg:           #FAF8F5;
+      --hp-hero:         linear-gradient(180deg,#FDF8F2 0%,#FAF8F5 100%);
+      --hp-header:       #FFFFFF;
+      --hp-card:         #FFFFFF;
+      --hp-border:       #EDE8E2;
+      --hp-text:         #2D2D3A;
+      --hp-soft:         #9A9AAA;
+      --hp-acc:          #C47A55;
+      --hp-acc-pale:     #F5E8DF;
+      --hp-acc-dark:     #9A5A38;
+      --hp-pill-act:     #2D2D3A;
+      --hp-display-font: 'Playfair Display', serif;
+      --hp-body-font:    'DM Sans', sans-serif;
+    }
+
+    @keyframes fadeUp    { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
+    @keyframes popIn     { from{opacity:0;transform:scale(0.93)} to{opacity:1;transform:scale(1)} }
+    @keyframes shake     { 0%,100%{transform:translateX(0)} 25%,75%{transform:translateX(-6px)} 50%{transform:translateX(6px)} }
+    @keyframes floatA    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+    @keyframes floatB    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+    @keyframes floatC    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)} }
+    @keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    @keyframes spin      { to{transform:rotate(360deg)} }
+    @keyframes aurora    {
+      0%  { background-position: 0% 50%; }
+      100%{ background-position: 100% 50%; }
+    }
+
+    /* ─── APP SHELL ──────────────────────────── */
+    #app { display:none; min-height:100vh; }
+
+    /* ─── HOMEPAGE ───────────────────────────── */
+    #homepage {
+      min-height:100vh;
+      background: var(--hp-bg);
+      font-family: var(--hp-body-font);
+      transition: background 0.4s ease;
+    }
+
+    /* Header */
+    .hp-header {
+      background: var(--hp-header);
+      border-bottom: 1.5px solid var(--hp-border);
+      padding: 12px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(12px);
+      transition: background 0.4s, border-color 0.4s;
+    }
+    .hp-header-left { display:flex; align-items:center; gap:10px; }
+    .bps-logo-img {
+      height: 32px; width: auto; object-fit: contain; flex-shrink: 0;
+    }
+    .mp-bps-logo-img {
+      height: 36px; width: auto; object-fit: contain; flex-shrink: 0;
+    }
+    .bps-logo-text b  { font-size:0.7rem; font-weight:700; color:var(--hp-text); display:block; font-family:var(--hp-body-font); }
+    .bps-logo-text span { font-size:0.58rem; color:var(--hp-soft); }
+    .header-divider { width:1px; height:22px; background:var(--hp-border); }
+    .site-title-hp {
+      font-family: var(--hp-display-font);
+      font-size: 1.05rem; font-weight:700;
+      color: var(--hp-acc);
+    }
+    .hp-header-right { display:flex; align-items:center; gap:8px; }
+    .hp-settings-btn {
+      width:36px; height:36px; border-radius:10px;
+      background: var(--hp-acc-pale); border: 1.5px solid var(--hp-border);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1rem; transition: all 0.2s; color: var(--hp-acc-dark);
+    }
+    .hp-settings-btn:hover { background:var(--hp-acc); color:white; border-color:var(--hp-acc); }
+    .admin-btn {
+      background: var(--hp-acc-pale); border: 1.5px solid var(--hp-border);
+      border-radius: 30px; padding: 7px 16px;
+      font-weight:600; font-size:0.75rem; color:var(--hp-acc-dark);
+      font-family: var(--hp-body-font);
+      transition: all 0.2s;
+    }
+    .admin-btn:hover { background:var(--hp-acc); color:white; border-color:var(--hp-acc); }
+
+    /* Hero */
+    .hp-hero {
+      text-align:center;
+      padding: 3rem 1rem 2rem;
+      background: var(--hp-hero);
+      transition: background 0.4s;
+    }
+    .hp-hero-eyebrow {
+      font-family: var(--hp-body-font);
+      font-size: 0.72rem; font-weight:600;
+      letter-spacing: 0.14em; text-transform:uppercase;
+      color: var(--hp-acc); margin-bottom:10px;
+      opacity:0.85;
+    }
+    .hp-hero-title {
+      font-family: var(--hp-display-font);
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      font-weight: 700;
+      color: var(--hp-text);
+      margin-bottom: 0.6rem;
+      line-height: 1.15;
+    }
+    .hp-hero-divider {
+      width: 48px; height: 2px;
+      background: var(--hp-acc);
+      margin: 0 auto 0.75rem; border-radius:2px;
+      opacity:0.5;
+    }
+    .hp-hero-desc {
+      color: var(--hp-soft); font-size:0.85rem;
+      max-width:380px; margin:0 auto 2rem;
+      line-height:1.75; font-family:var(--hp-body-font);
+    }
+
+    /* Filter pills */
+    .filter-row {
+      display:flex; justify-content:center; gap:6px;
+      flex-wrap:wrap; margin-bottom:0.5rem;
+    }
+    .fpill {
+      font-family: var(--hp-body-font);
+      font-weight:500; font-size:0.75rem;
+      padding:5px 15px; border-radius:30px;
+      border: 1.5px solid; transition:all 0.18s;
+      white-space:nowrap;
+    }
+    .fpill.active {
+      background: var(--hp-pill-act); color:white;
+      border-color: var(--hp-pill-act);
+    }
+    .fpill:not(.active) {
+      background: var(--hp-card); color: var(--hp-soft);
+      border-color: var(--hp-border);
+    }
+    .fpill:not(.active):hover { border-color:var(--hp-acc); color:var(--hp-acc); }
+
+    /* Grid */
+    .hp-grid {
+      max-width: 1020px; margin: 0 auto;
+      padding: 1.75rem 1.5rem 5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px,1fr));
+      gap: 1.1rem;
+    }
+    .hp-empty {
+      grid-column:1/-1; text-align:center;
+      padding:3.5rem; color:var(--hp-soft); font-size:0.9rem;
+      font-family:var(--hp-body-font);
+    }
+    .hp-empty-icon { font-size:2.2rem; margin-bottom:10px; }
+
+    /* Cards — Pinterest editorial style */
+    .meeting-card {
+      background: var(--hp-card);
+      border-radius: 18px; overflow:hidden;
+      cursor: pointer;
+      border: 1.5px solid var(--hp-border);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+      animation: fadeUp 0.4s ease both;
+    }
+    .meeting-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 14px 36px rgba(0,0,0,0.10);
+    }
+    .card-accent-bar { height:3px; width:100%; }
+    .card-preview-band {
+      height:100px; position:relative; overflow:hidden;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .card-preview-img {
+      height:70px; object-fit:contain;
+      filter:drop-shadow(0 4px 12px rgba(0,0,0,0.10));
+      position:relative; z-index:2;
+      transition: transform 0.3s ease;
+    }
+    .meeting-card:hover .card-preview-img { transform:scale(1.06) translateY(-2px); }
+    .card-preview-deco {
+      position:absolute; font-size:1.1rem; opacity:0.18;
+      pointer-events:none;
+    }
+    .card-theme-badge { display:none; } /* hidden — cleaner look */
+    .card-body { padding: 0.95rem 1.1rem 0.85rem; }
+    .card-top-row {
+      display:flex; justify-content:space-between;
+      align-items:center; margin-bottom:5px;
+    }
+    .status-badge {
+      font-size:0.62rem; font-weight:700;
+      padding:3px 10px; border-radius:20px;
+      letter-spacing:0.03em;
+      font-family:var(--hp-body-font);
+    }
+    .status-live     { background:#D8F5E4; color:#1A7A48; animation:livePulse 2s infinite; }
+    .status-upcoming { background:#EDE8FA; color:#4A3A9A; }
+    .status-ended    { background:#EEEEEE; color:#888; }
+    .card-cat-label  { font-size:0.66rem; font-weight:600; font-family:var(--hp-body-font); }
+    .card-type-label {
+      font-size:0.72rem; color:var(--hp-soft);
+      margin-bottom:3px; font-style:italic;
+      font-family:var(--hp-body-font);
+    }
+    .card-subtitle {
+      font-weight:600; font-size:0.9rem;
+      color:var(--hp-text); line-height:1.4; margin-bottom:5px;
+      font-family:var(--hp-body-font);
+    }
+    .card-meta {
+      font-size:0.71rem; color:var(--hp-soft);
+      margin-bottom:10px; font-family:var(--hp-body-font);
+    }
+    .card-footer {
+      border-top:1px solid var(--hp-border);
+      padding-top:8px;
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .card-link-count { font-size:0.67rem; color:var(--hp-soft); font-family:var(--hp-body-font); }
+    .card-open-btn {
+      font-size:0.72rem; font-weight:700;
+      padding:4px 14px; border-radius:20px;
+      transition:all 0.18s; letter-spacing:0.03em;
+      font-family:var(--hp-body-font);
+    }
+
+    /* ─── HOMEPAGE SETTINGS PANEL ────────────── */
+    .hp-settings-backdrop {
+      position:fixed; inset:0;
+      background:rgba(45,45,60,0.32);
+      backdrop-filter:blur(4px);
+      z-index:500; display:none;
+      justify-content:flex-end;
+      animation:fadeIn 0.2s ease;
+    }
+    .hp-settings-backdrop.open { display:flex; }
+    .hp-settings-panel {
+      background:var(--hp-card);
+      width:min(320px,92vw); height:100vh;
+      overflow-y:auto; padding:1.75rem 1.5rem;
+      border-left:1.5px solid var(--hp-border);
+      box-shadow: -8px 0 40px rgba(0,0,0,0.12);
+      animation:slideInRight 0.25s cubic-bezier(0.4,0,0.2,1);
+      font-family:var(--hp-body-font);
+    }
+    @keyframes slideInRight {
+      from{transform:translateX(40px);opacity:0}
+      to{transform:translateX(0);opacity:1}
+    }
+    .hsp-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:1.5rem;
+    }
+    .hsp-title {
+      font-family:var(--hp-display-font);
+      font-size:1.2rem; font-weight:700; font-style:italic;
+      color:var(--hp-text);
+    }
+    .hsp-close {
+      width:30px; height:30px; border-radius:8px;
+      background:#FDE8E8; border:none;
+      color:#C04040; font-weight:700; font-size:0.85rem;
+    }
+    .hsp-section { margin-bottom:1.5rem; }
+    .hsp-label {
+      font-size:0.67rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.1em;
+      color:var(--hp-soft); margin-bottom:8px; display:block;
+    }
+
+    /* Theme swatches */
+    .hsp-theme-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+    .hsp-theme-swatch {
+      aspect-ratio:1; border-radius:10px;
+      border:2px solid transparent; cursor:pointer;
+      transition:all 0.15s; overflow:hidden;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:2px; font-size:0.6rem; font-weight:700;
+    }
+    .hsp-theme-swatch.selected { border-color:var(--hp-acc); box-shadow:0 0 0 2px var(--hp-acc-pale); }
+    .hsp-theme-swatch:hover { transform:scale(1.06); }
+    .hsp-swatch-dot { width:14px; height:14px; border-radius:50%; }
+
+    /* Font options */
+    .hsp-font-opt {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:9px 12px; border-radius:12px;
+      border:1.5px solid var(--hp-border);
+      background:var(--hp-bg); cursor:pointer;
+      margin-bottom:5px; transition:all 0.15s;
+    }
+    .hsp-font-opt:hover, .hsp-font-opt.selected {
+      border-color:var(--hp-acc); background:var(--hp-acc-pale);
+    }
+    .hsp-font-name { font-size:0.88rem; font-weight:600; color:var(--hp-text); }
+    .hsp-font-sub  { font-size:0.68rem; color:var(--hp-soft); }
+    .hsp-font-check { font-size:0.8rem; color:var(--hp-acc); font-weight:700; }
+
+    /* Accent swatches */
+    .hsp-accents { display:flex; gap:8px; flex-wrap:wrap; }
+    .hsp-acc-swatch {
+      width:30px; height:30px; border-radius:8px;
+      border:2.5px solid transparent; cursor:pointer;
+      transition:all 0.15s;
+    }
+    .hsp-acc-swatch:hover { transform:scale(1.1); }
+    .hsp-acc-swatch.selected { border-color:#2D2D3A; box-shadow:0 0 0 3px rgba(45,45,58,0.15); }
+
+    /* Background swatches */
+    .hsp-bg-group { margin-bottom:10px; }
+    .hsp-bg-group-label { font-size:0.64rem; color:var(--hp-soft); margin-bottom:5px; font-style:italic; }
+    .hsp-bg-swatches { display:flex; gap:5px; flex-wrap:wrap; }
+    .hsp-bg-swatch {
+      width:34px; height:34px; border-radius:8px;
+      border:2px solid var(--hp-border); cursor:pointer;
+      transition:all 0.15s; overflow:hidden;
+    }
+    .hsp-bg-swatch.selected { border-color:var(--hp-acc); box-shadow:0 0 0 2px var(--hp-acc-pale); }
+    .hsp-bg-swatch:hover { transform:scale(1.08); }
+
+    /* ─── MEETING PAGE ───────────────────────── */
+    #meeting-page {
+      min-height:100vh; display:flex; flex-direction:column;
+      position:relative; overflow:hidden; transition:background 0.4s;
+    }
+    .mp-sparkles { position:absolute; inset:0; pointer-events:none; z-index:1; overflow:hidden; }
+    .mp-sparkle {
+      position:absolute; font-size:1.1rem; opacity:0.5;
+    }
+    .mp-topbar {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:14px 28px; position:relative; z-index:10;
+    }
+    .mp-bps-left { display:flex; align-items:center; gap:9px; }
+    .mp-bps-text b { font-size:0.68rem; display:block; }
+    .mp-bps-text span { font-size:0.6rem; opacity:0.7; }
+    .mp-right { display:flex; align-items:center; gap:14px; }
+    .mp-se-text { text-align:right; }
+    .mp-se-text span { font-size:0.68rem; display:block; }
+    .mp-se-text b { font-size:1.05rem; }
+    .mp-vdivider { width:1px; height:26px; opacity:0.2; }
+    .mp-home-btn {
+      background:none; border:none; font-size:0.8rem;
+      font-weight:600; letter-spacing:0.06em; opacity:0.7;
+      transition:opacity 0.2s;
+    }
+    .mp-home-btn:hover { opacity:1; }
+
+    .mp-chips-row {
+      display:flex; justify-content:center; gap:8px; flex-wrap:wrap;
+      margin-top:0.2rem; padding:0 1rem;
+      position:relative; z-index:10;
+    }
+    .mp-chip {
+      display:inline-flex; align-items:center; gap:5px;
+      border-radius:30px; padding:4px 14px;
+      font-size:0.72rem; font-weight:600;
+      border-width:1px; border-style:solid;
+    }
+
+    .mp-subtitle-area {
+      text-align:center; margin-top:0.8rem;
+      padding:0 1rem; position:relative; z-index:10;
+    }
+    .mp-subtitle {
+      font-family:'Caveat',cursive; font-size:1.55rem;
+      font-weight:600; letter-spacing:0.01em;
+    }
+
+    .mp-title-area {
+      text-align:center; padding:0.3rem 1.5rem 0;
+      position:relative; z-index:10;
+    }
+    .mp-title {
+      font-size:clamp(1.8rem,5.5vw,3.6rem);
+      line-height:1.1; letter-spacing:0.01em;
+    }
+
+    .mp-illus-area {
+      flex:1; display:flex; align-items:center; justify-content:center;
+      padding:0.75rem 2rem; min-height:160px;
+      position:relative; z-index:10;
+    }
+    .mp-illus-img {
+      max-height:210px; max-width:480px; object-fit:contain;
+      filter:drop-shadow(0 8px 24px rgba(0,0,0,0.10));
+      animation:fadeUp 0.6s ease both;
+    }
+    .mp-illus-placeholder { font-size:4rem; opacity:0.2; }
+
+    .mp-meta-row {
+      display:flex; justify-content:center; gap:8px; flex-wrap:wrap;
+      padding:0 1rem 0.75rem; position:relative; z-index:10;
+    }
+    .mp-meta-chip {
+      display:flex; align-items:center; gap:5px;
+      border-radius:30px; padding:5px 14px;
+      font-size:0.74rem; font-weight:500;
+      border-width:1px; border-style:solid;
+    }
+
+    .mp-links-area { padding:0 0 2.5rem; position:relative; z-index:10; }
+
+    /* Pills button style */
+    .links-pills {
+      display:flex; flex-wrap:wrap; justify-content:center;
+      gap:10px; padding:0 1.5rem;
+    }
+    .link-pill-btn {
+      display:flex; align-items:center; gap:0;
+      background:none; border:none; padding:0;
+      animation:fadeUp 0.4s ease both;
+    }
+    .link-pill-circle {
+      width:46px; height:46px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0; z-index:2;
+      font-weight:900; font-size:0.95rem;
+      color:white; letter-spacing:-1px;
+    }
+    .link-pill-label {
+      border-radius:0 22px 22px 0;
+      padding:11px 20px 11px 16px;
+      font-weight:600; font-size:0.84rem;
+      margin-left:-3px; min-width:130px; text-align:center;
+      text-decoration:underline;
+      border-width:1px; border-style:solid;
+      transition:opacity 0.15s;
+    }
+    .link-pill-btn:hover .link-pill-label { opacity:0.8; }
+
+    /* Table button style */
+    .links-table { max-width:480px; margin:0 auto; padding:0 2rem; }
+    .link-table-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:11px 0;
+    }
+    .link-table-row + .link-table-row { border-top-width:1.5px; border-top-style:solid; border-top-color:transparent; }
+    .link-table-name {
+      font-weight:600; font-size:0.88rem;
+      letter-spacing:0.08em; text-transform:uppercase;
+    }
+    .link-table-btn {
+      border:none; border-radius:30px; padding:8px 24px;
+      font-weight:600; font-size:0.82rem;
+      text-decoration:underline; color:white;
+      transition:opacity 0.15s;
+    }
+    .link-table-btn:hover { opacity:0.85; }
+
+    /* Theme customizer */
+    .theme-fab {
+      position:fixed; bottom:22px; right:22px;
+      border:none; border-radius:30px;
+      padding:10px 18px; font-weight:600; font-size:0.78rem;
+      color:white; z-index:200;
+      box-shadow:0 4px 16px rgba(0,0,0,0.2);
+      transition:transform 0.2s;
+    }
+    .theme-fab:hover { transform:scale(1.05); }
+
+    .theme-picker {
+      position:fixed; bottom:70px; right:22px;
+      background:white; border-radius:20px;
+      padding:1.1rem 1.2rem;
+      box-shadow:var(--shadow-lg);
+      z-index:300; width:310px;
+      animation:popIn 0.2s ease;
+      border:1.5px solid var(--border);
+      max-height:72vh; overflow-y:auto;
+      display:none;
+    }
+    .theme-picker.open { display:block; }
+    .tp-title { font-family:'Caveat',cursive; font-size:1.15rem; color:#5A3A2A; margin-bottom:12px; }
+    .tp-section-label {
+      font-size:0.67rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.08em; color:#AAA; margin-bottom:6px; margin-top:12px;
+    }
+    .tp-section-label:first-of-type { margin-top:0; }
+
+    .tp-font-btn {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:7px 10px; border-radius:10px; border:1.5px solid;
+      width:100%; background:#FAFAFA; margin-bottom:4px;
+      transition:all 0.15s;
+    }
+    .tp-font-btn.selected { background:#FAF0E8; }
+    .tp-font-name { font-size:0.88rem; font-weight:600; }
+    .tp-font-body { font-size:0.72rem; color:#AAA; }
+
+    .tp-accents { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:4px; }
+    .tp-accent-swatch {
+      width:32px; height:32px; border-radius:9px;
+      border:3px solid transparent; cursor:pointer;
+      transition:transform 0.15s;
+    }
+    .tp-accent-swatch:hover { transform:scale(1.1); }
+    .tp-accent-swatch.selected { border-color:#2D2D3A; }
+    .tp-selected-label { font-size:0.7rem; color:#888; }
+
+    .tp-bg-group { margin-bottom:8px; }
+    .tp-bg-group-label { font-size:0.65rem; color:#BBB; margin-bottom:5px; font-style:italic; }
+    .tp-bg-swatches { display:flex; gap:5px; flex-wrap:wrap; }
+    .tp-bg-swatch {
+      width:32px; height:32px; border-radius:8px;
+      border:2px solid var(--border); cursor:pointer;
+      transition:all 0.15s; overflow:hidden;
+    }
+    .tp-bg-swatch.selected { border-color:#2D2D3A; box-shadow:0 0 0 2px rgba(45,45,58,0.2); }
+    .tp-bg-swatch:hover { transform:scale(1.08); }
+
+    .tp-btn-style { display:flex; gap:7px; }
+    .tp-style-btn {
+      flex:1; padding:7px; border-radius:10px;
+      border:1.5px solid var(--border);
+      font-size:0.78rem; font-weight:600; background:#FAFAFA;
+      transition:all 0.15s;
+    }
+    .tp-style-btn.selected { background:#FAF0E8; border-color:#C47A55; color:#C47A55; }
+
+    .tp-apply-btn {
+      width:100%; padding:10px; border:none;
+      border-radius:12px; font-weight:700; font-size:0.85rem;
+      color:white; margin-top:12px; transition:opacity 0.2s;
+    }
+    .tp-apply-btn:hover { opacity:0.88; }
+
+    /* ─── OVERLAYS ───────────────────────────── */
+    .overlay-backdrop {
+      position:fixed; inset:0;
+      background:rgba(45,45,60,0.38);
+      backdrop-filter:blur(3px);
+      z-index:400; display:none;
+      align-items:center; justify-content:center;
+      animation:fadeIn 0.2s ease;
+    }
+    .overlay-backdrop.open { display:flex; }
+
+    /* Admin Login */
+    .login-card {
+      background:white; border-radius:24px; padding:2rem;
+      width:90%; max-width:360px;
+      box-shadow:var(--shadow-lg);
+      border:2px solid var(--border);
+      font-family:'DM Sans',sans-serif;
+      animation:popIn 0.25s ease;
+    }
+    .login-card.shake { animation:shake 0.4s ease; }
+    .login-icon { font-size:2rem; text-align:center; margin-bottom:8px; }
+    .login-title {
+      font-family:'Playfair Display',serif; font-size:1.3rem;
+      font-weight:700; text-align:center; color:var(--text-main); margin-bottom:4px;
+    }
+    .login-sub { font-size:0.82rem; color:var(--text-soft); text-align:center; margin-bottom:1.5rem; }
+    .login-input {
+      width:100%; padding:11px 16px;
+      border:2px solid var(--border); border-radius:12px;
+      font-size:0.9rem; outline:none; background:var(--cream);
+      transition:border 0.2s; margin-bottom:8px;
+    }
+    .login-input:focus { border-color:#C47A55; }
+    .login-input.error { border-color:#E07070; background:#FFF5F5; }
+    .login-error { font-size:0.75rem; color:#E07070; text-align:center; margin-bottom:8px; }
+    .login-submit {
+      width:100%; padding:11px; background:var(--text-main);
+      color:white; border:none; border-radius:12px;
+      font-weight:700; font-size:0.88rem; margin-bottom:8px; transition:background 0.2s;
+    }
+    .login-submit:hover { background:#4A4A6A; }
+    .login-cancel {
+      width:100%; padding:9px; background:none;
+      color:var(--text-soft); border:1.5px solid var(--border);
+      border-radius:12px; font-size:0.82rem; transition:all 0.15s;
+    }
+    .login-cancel:hover { border-color:#C47A55; color:#C47A55; }
+
+    /* Admin Panel */
+    .admin-panel {
+      background:white; width:94%; max-width:560px;
+      max-height:90vh; border-radius:24px;
+      overflow:hidden; display:flex; flex-direction:column;
+      box-shadow:var(--shadow-lg); border:2px solid var(--border);
+      font-family:'DM Sans',sans-serif;
+      animation:popIn 0.25s ease;
+    }
+    .admin-header {
+      padding:1.2rem 1.5rem;
+      border-bottom:1.5px solid var(--border);
+      display:flex; justify-content:space-between; align-items:center;
+      flex-shrink:0;
+    }
+    .admin-title {
+      font-family:'Playfair Display',serif; font-size:1.25rem;
+      font-weight:700; color:var(--text-main);
+    }
+    .admin-close {
+      width:28px; height:28px; border-radius:50%;
+      background:#FDE8E8; border:none; color:#C04040; font-weight:700;
+    }
+    .admin-tabs { display:flex; border-bottom:1.5px solid var(--border); flex-shrink:0; }
+    .admin-tab {
+      flex:1; padding:10px; border:none;
+      font-weight:500; font-size:0.82rem;
+      background:white; color:var(--text-soft);
+      border-bottom:2.5px solid transparent;
+      transition:all 0.15s;
+    }
+    .admin-tab.active {
+      font-weight:700; color:#C47A55;
+      border-bottom-color:#C47A55; background:#FFF8F5;
+    }
+    .admin-body { overflow-y:auto; padding:1.4rem 1.5rem; flex:1; }
+
+    /* meeting list in admin */
+    .admin-meeting-row {
+      display:flex; align-items:center; gap:10px;
+      padding:9px 12px; border-radius:12px;
+      border:1.5px solid var(--border); margin-bottom:7px;
+      background:var(--cream); transition:border 0.15s;
+    }
+    .admin-meeting-row:hover { border-color:#C47A55; }
+    .admin-meeting-info { flex:1; min-width:0; }
+    .admin-meeting-subtitle { font-weight:600; font-size:0.85rem; color:var(--text-main); 
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .admin-meeting-meta { font-size:0.72rem; color:var(--text-soft); }
+    .admin-meeting-actions { display:flex; gap:5px; flex-shrink:0; }
+    .admin-action-btn {
+      width:28px; height:28px; border-radius:8px;
+      border:none; font-size:0.8rem;
+      display:flex; align-items:center; justify-content:center;
+      transition:all 0.15s;
+    }
+    .admin-edit-btn   { background:#EDE8FA; color:#5A3A9A; }
+    .admin-edit-btn:hover   { background:#5A3A9A; color:white; }
+    .admin-delete-btn { background:#FDE8E8; color:#C04040; }
+    .admin-delete-btn:hover { background:#C04040; color:white; }
+
+    /* Form elements */
+    .form-section { margin-bottom:1.25rem; }
+    .form-row { margin-bottom:0.85rem; }
+    .form-row-2col { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:0.85rem; }
+    .form-label {
+      font-size:0.67rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.08em;
+      color:var(--text-soft); display:flex;
+      justify-content:space-between; align-items:center;
+      margin-bottom:5px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width:100%; padding:9px 13px;
+      border:2px solid var(--border); border-radius:12px;
+      font-size:0.84rem; color:var(--text-main);
+      background:var(--cream); outline:none;
+      transition:border 0.2s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color:#C47A55; background:white;
+    }
+    .form-hint { font-size:0.68rem; color:#BBB; margin-top:3px; }
+    .form-section-title {
+      font-family:'Playfair Display',serif; font-size:1rem;
+      font-weight:700; color:var(--text-main);
+      margin-bottom:10px; padding-bottom:6px;
+      border-bottom:1.5px solid var(--border);
+    }
+
+    /* Link rows in form */
+    .link-form-row {
+      display:flex; align-items:center; gap:7px; margin-bottom:7px;
+    }
+    .link-form-icon {
+      width:28px; height:28px; border-radius:8px;
+      background:#F0EBE8; display:flex; align-items:center;
+      justify-content:center; font-size:0.82rem; flex-shrink:0;
+    }
+    .link-form-input {
+      flex:1; padding:7px 10px;
+      border:2px solid var(--border); border-radius:10px;
+      font-size:0.8rem; color:var(--text-main);
+      background:var(--cream); outline:none;
+      transition:border 0.2s;
+    }
+    .link-form-input:focus { border-color:#C47A55; background:white; }
+    .link-toggle-label {
+      display:flex; align-items:center; gap:3px;
+      font-size:0.65rem; color:var(--text-soft); flex-shrink:0; cursor:pointer;
+    }
+    .link-toggle-label input { cursor:pointer; }
+
+    /* Theme picker in form */
+    .form-theme-area {
+      background:var(--cream); border-radius:14px;
+      padding:1rem; border:1.5px solid var(--border); margin-bottom:0.85rem;
+    }
+    .form-font-option {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:6px 10px; border-radius:10px; border:1.5px solid var(--border);
+      background:white; cursor:pointer; margin-bottom:4px;
+      transition:border 0.15s;
+    }
+    .form-font-option:hover, .form-font-option.selected { border-color:#C47A55; background:#FFF8F5; }
+    .form-accent-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:4px; }
+    .form-accent-dot {
+      width:28px; height:28px; border-radius:8px;
+      cursor:pointer; border:3px solid transparent;
+      transition:all 0.15s;
+    }
+    .form-accent-dot:hover { transform:scale(1.1); }
+    .form-accent-dot.selected { border-color:#2D2D3A; }
+    .form-bg-mini-row { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:5px; }
+    .form-bg-mini {
+      width:28px; height:28px; border-radius:7px;
+      border:2px solid var(--border); cursor:pointer;
+      transition:all 0.15s; overflow:hidden;
+    }
+    .form-bg-mini:hover { transform:scale(1.08); }
+    .form-bg-mini.selected { border-color:#2D2D3A; }
+    .form-btn-style-row { display:flex; gap:7px; }
+    .form-btn-style-opt {
+      flex:1; padding:6px; border-radius:10px;
+      border:1.5px solid var(--border);
+      font-size:0.78rem; font-weight:600;
+      background:white; color:var(--text-soft);
+      cursor:pointer; transition:all 0.15s;
+    }
+    .form-btn-style-opt.selected { background:#FFF8F5; border-color:#C47A55; color:#C47A55; }
+
+    /* Category management */
+    .cat-row {
+      display:flex; align-items:center; gap:8px;
+      background:var(--cream); border-radius:12px;
+      padding:9px 12px; border:1.5px solid var(--border); margin-bottom:6px;
+    }
+    .cat-color-dot { width:14px; height:14px; border-radius:50%; flex-shrink:0; }
+    .cat-name { flex:1; font-weight:600; font-size:0.85rem; color:var(--text-main); }
+    .cat-del-btn {
+      width:26px; height:26px; border-radius:8px;
+      background:#FDE8E8; border:none; color:#C04040;
+      font-weight:700; font-size:0.78rem;
+    }
+    .new-cat-row { display:flex; gap:7px; align-items:center; margin-bottom:7px; }
+    .color-picker-input {
+      width:38px; height:38px; border-radius:10px;
+      border:2px solid var(--border); padding:2px; cursor:pointer;
+    }
+
+    /* Save / Delete buttons */
+    .save-btn {
+      width:100%; padding:12px;
+      border:none; border-radius:14px;
+      font-weight:700; font-size:0.88rem; color:white;
+      transition:opacity 0.2s; margin-top:0.5rem;
+    }
+    .save-btn:hover { opacity:0.88; }
+    .save-btn-secondary {
+      width:100%; padding:10px; background:none;
+      border:1.5px solid var(--border); border-radius:12px;
+      font-size:0.82rem; color:var(--text-soft); margin-top:6px;
+      transition:all 0.15s;
+    }
+    .save-btn-secondary:hover { border-color:#C47A55; color:#C47A55; }
+    .delete-confirm-btn {
+      width:100%; padding:10px; background:#FDE8E8;
+      border:1.5px solid #F0C0C0; border-radius:12px;
+      font-size:0.82rem; color:#C04040; font-weight:600; margin-top:6px;
+    }
+
+    /* Spinner */
+    .spinner {
+      width:20px; height:20px; border:2.5px solid #DDD;
+      border-top-color:#C47A55; border-radius:50%;
+      animation:spin 0.7s linear infinite; margin:2rem auto;
+    }
+
+    /* Toast */
+    #toast {
+      position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+      background:var(--text-main); color:white;
+      padding:10px 20px; border-radius:30px;
+      font-size:0.82rem; font-weight:600; font-family:'DM Sans',sans-serif;
+      z-index:1000; opacity:0; pointer-events:none;
+      transition:opacity 0.3s; white-space:nowrap;
+    }
+    #toast.show { opacity:1; }
+  </style>
+</head>
+<body>
+
+<!-- Setup screen dihapus — konfigurasi langsung di CONFIG dalam script -->
+
+<!-- APP -->
+<div id="app">
+
+  <!-- HOMEPAGE -->
+  <div id="homepage" style="display:none">
+    <header class="hp-header">
+      <div class="hp-header-left">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/2/29/Logo_BPS.png" alt="BPS" class="bps-logo-img">
+        <div class="bps-logo-text">
+          <b>BADAN PUSAT STATISTIK</b>
+          <span>Prov. Kep. Bangka Belitung</span>
+        </div>
+        <div class="header-divider"></div>
+        <div class="site-title-hp">SE2026 Meeting Hub</div>
+      </div>
+      <div class="hp-header-right">
+        <button class="hp-settings-btn" onclick="openHpSettings()" title="Kustomisasi tampilan">🎨</button>
+        <button class="admin-btn" onclick="handleAdminClick()">🔒 Admin</button>
+      </div>
+    </header>
+
+    <section class="hp-hero">
+      <div class="hp-hero-eyebrow">Portal Rapat Online · SE 2026</div>
+      <h1 class="hp-hero-title">SE2026 Meeting Hub</h1>
+      <div class="hp-hero-divider"></div>
+      <p class="hp-hero-desc">Semua tautan rapat online dalam satu tempat. Klik kegiatan untuk melihat detail dan bergabung.</p>
+      <div class="filter-row" id="status-filters"></div>
+      <div class="filter-row" style="margin-top:0" id="cat-filters"></div>
+    </section>
+
+    <div class="hp-grid" id="meetings-grid"></div>
+  </div>
+
+  <!-- MEETING PAGE -->
+  <div id="meeting-page" style="display:none">
+    <div class="mp-sparkles" id="mp-sparkles"></div>
+    <div class="mp-topbar">
+      <div class="mp-bps-left">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/2/29/Logo_BPS.png" alt="BPS" class="bps-logo-img mp-bps-logo-img">
+        <div class="mp-bps-text" id="mp-bps-text">
+          <b>BADAN PUSAT STATISTIK</b>
+          <span>PROVINSI KEPULAUAN BANGKA BELITUNG</span>
+        </div>
+      </div>
+      <div class="mp-right">
+        <div class="mp-se-text" id="mp-se-text">
+          <span>SENSUS EKONOMI</span>
+          <b>2026</b>
+        </div>
+        <div class="mp-vdivider" id="mp-vdivider"></div>
+        <button class="mp-home-btn" id="mp-home-btn" onclick="goHome()">HOME</button>
+      </div>
+    </div>
+
+    <div class="mp-chips-row" id="mp-chips-row"></div>
+    <div class="mp-subtitle-area"><div class="mp-subtitle" id="mp-subtitle"></div></div>
+    <div class="mp-title-area"><h1 class="mp-title" id="mp-title"></h1></div>
+    <div class="mp-illus-area" id="mp-illus-area"></div>
+    <div class="mp-meta-row" id="mp-meta-row"></div>
+    <div class="mp-links-area" id="mp-links-area"></div>
+
+    <button class="theme-fab" id="theme-fab" onclick="toggleThemePicker()">🎨 Tema</button>
+    <div class="theme-picker" id="theme-picker">
+      <div class="tp-title">✨ Kustomisasi Tema</div>
+      <div id="tp-content"></div>
+    </div>
+  </div>
+
+</div><!-- /#app -->
+
+<!-- OVERLAYS -->
+<!-- Admin Login -->
+<div class="overlay-backdrop" id="login-backdrop">
+  <div class="login-card" id="login-card">
+    <div class="login-icon">🔒</div>
+    <div class="login-title">Admin Panel</div>
+    <div class="login-sub">Masukkan password untuk melanjutkan</div>
+    <input type="password" class="login-input" id="login-pw" placeholder="Password..."
+      onkeydown="if(event.key==='Enter')submitLogin()">
+    <div class="login-error" id="login-error" style="display:none">Password salah. Coba lagi.</div>
+    <button class="login-submit" onclick="submitLogin()">Masuk</button>
+    <button class="login-cancel" onclick="closeLogin()">Batal</button>
+  </div>
+</div>
+
+<!-- Admin Panel -->
+<div class="overlay-backdrop" id="admin-backdrop">
+  <div class="admin-panel">
+    <div class="admin-header">
+      <div class="admin-title">⚙️ Admin Panel</div>
+      <button class="admin-close" onclick="closeAdmin()">✕</button>
+    </div>
+    <div class="admin-tabs">
+      <button class="admin-tab active" id="tab-list"   onclick="switchAdminTab('list')">📋 Meeting</button>
+      <button class="admin-tab"        id="tab-form"   onclick="switchAdminTab('form')" style="display:none">✏️ Form</button>
+      <button class="admin-tab"        id="tab-cats"   onclick="switchAdminTab('cats')">🗂️ Kategori</button>
+    </div>
+    <div class="admin-body" id="admin-body"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Homepage Settings Panel -->
+<div class="hp-settings-backdrop" id="hp-settings-backdrop" onclick="closeHpSettings(event)">
+  <div class="hp-settings-panel" onclick="event.stopPropagation()">
+    <div class="hsp-header">
+      <div class="hsp-title">✨ Display Settings</div>
+      <button class="hsp-close" onclick="closeHpSettings()">✕</button>
+    </div>
+    <div id="hsp-content"></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   THEME DEFINITIONS
+═══════════════════════════════════════════════ */
+const FONT_PAIRS = {
+  playfair:   { id:'playfair',   label:'Playfair Display + DM Sans',          display:"'Playfair Display', serif",    body:"'DM Sans', sans-serif",    tw:700, ts:'normal' },
+  cormorant:  { id:'cormorant',  label:'Cormorant Garamond + Jost',            display:"'Cormorant Garamond', serif",  body:"'Jost', sans-serif",       tw:600, ts:'italic' },
+  baskerville:{ id:'baskerville',label:'Libre Baskerville + Nunito',           display:"'Libre Baskerville', serif",  body:"'Nunito', sans-serif",     tw:700, ts:'normal' },
+  fredoka:    { id:'fredoka',    label:'Fredoka One + DM Sans',                display:"'Fredoka One', cursive",       body:"'DM Sans', sans-serif",    tw:400, ts:'normal' },
+};
+
+/* ── Homepage theme presets ── */
+const HP_THEMES = {
+  light: { id:'light', label:'Light', emoji:'☀️',
+    bg:'#FAF8F5', hero:'linear-gradient(180deg,#FDF8F2 0%,#FAF8F5 100%)',
+    header:'rgba(255,255,255,0.92)', card:'#FFFFFF',
+    border:'#EDE8E2', text:'#2D2D3A', soft:'#9A9AAA', pillAct:'#2D2D3A' },
+  warm: { id:'warm', label:'Warm', emoji:'🌅',
+    bg:'#FDF5EC', hero:'linear-gradient(180deg,#FFF4E8 0%,#FDF5EC 100%)',
+    header:'rgba(255,251,247,0.92)', card:'#FFFBF7',
+    border:'#E8D8C4', text:'#3A2A1A', soft:'#A08060', pillAct:'#7A4A28' },
+  sage: { id:'sage', label:'Sage', emoji:'🌿',
+    bg:'#F0F5F0', hero:'linear-gradient(180deg,#E8F2E8 0%,#F0F5F0 100%)',
+    header:'rgba(250,252,250,0.92)', card:'#FAFCFA',
+    border:'#CCE0CC', text:'#1E3020', soft:'#6A8A6A', pillAct:'#2A5A30' },
+  blush: { id:'blush', label:'Blush', emoji:'🌸',
+    bg:'#FDF0EE', hero:'linear-gradient(180deg,#FFEAE6 0%,#FDF0EE 100%)',
+    header:'rgba(255,250,250,0.92)', card:'#FFFAFA',
+    border:'#EDD0CC', text:'#3A1A1A', soft:'#A06A6A', pillAct:'#7A3030' },
+  dark: { id:'dark', label:'Dark', emoji:'🌙',
+    bg:'#1E1C1A', hero:'linear-gradient(180deg,#252320 0%,#1E1C1A 100%)',
+    header:'rgba(30,28,26,0.95)', card:'#2A2826',
+    border:'#3A3530', text:'#F0EDE8', soft:'#887A6A', pillAct:'#C47A55' },
+};
+
+/* ── Homepage background options ── */
+const HP_BACKGROUNDS = {
+  none:        { id:'none',        label:'Default',          group:'solid',    css:()=>'' },
+  warmBeige:   { id:'warmBeige',   label:'Warm Beige',       group:'solid',    css:()=>'background:#F5EFE0;' },
+  softBlush:   { id:'softBlush',   label:'Soft Blush',       group:'solid',    css:()=>'background:#FAF0EE;' },
+  sageMist:    { id:'sageMist',    label:'Sage Mist',        group:'solid',    css:()=>'background:#EEF5EE;' },
+  dotGrid:     { id:'dotGrid',     label:'Dot Grid',         group:'pattern',  css:(a)=>`background-image:radial-gradient(circle,${a}30 1px,transparent 1px);background-size:22px 22px;` },
+  graphPaper:  { id:'graphPaper',  label:'Graph Paper',      group:'pattern',  css:(a)=>`background-image:linear-gradient(${a}18 1px,transparent 1px),linear-gradient(90deg,${a}18 1px,transparent 1px),linear-gradient(${a}0C 1px,transparent 1px),linear-gradient(90deg,${a}0C 1px,transparent 1px);background-size:80px 80px,80px 80px,20px 20px,20px 20px;` },
+  diagonal:    { id:'diagonal',    label:'Diagonal Lines',   group:'pattern',  css:(a)=>`background-image:repeating-linear-gradient(45deg,${a}14 0px,${a}14 1px,transparent 1px,transparent 18px);` },
+  linen:       { id:'linen',       label:'Linen Texture',    group:'pattern',  css:(a)=>`background-image:repeating-linear-gradient(0deg,${a}0C 0px,${a}0C 1px,transparent 1px,transparent 4px),repeating-linear-gradient(90deg,${a}08 0px,${a}08 1px,transparent 1px,transparent 6px);` },
+  polkaDots:   { id:'polkaDots',   label:'Polka Dots',       group:'pattern',  css:(a)=>`background-image:radial-gradient(circle,${a}35 3px,transparent 3px);background-size:30px 30px;` },
+  aurora:      { id:'aurora',      label:'Soft Aurora',      group:'gradient', css:(a,pale)=>`background:linear-gradient(135deg,#FAF8F3,${pale},#F0F8F4,${pale});background-size:400% 400%;animation:aurora 8s ease infinite alternate;` },
+  warmGlow:    { id:'warmGlow',    label:'Warm Glow',        group:'gradient', css:(a,pale)=>`background:radial-gradient(ellipse 80% 60% at 50% 0%,${pale} 0%,#FAF8F3 60%);` },
+  blushFade:   { id:'blushFade',   label:'Blush Fade',       group:'gradient', css:(a,pale)=>`background:linear-gradient(180deg,${pale} 0%,#FAF8F3 50%,#FDFCF9 100%);` },
+};
+
+const ACCENTS = {
+  dustyRose:  { id:'dustyRose',   label:'Dusty Rose',   hex:'#C4857A', dark:'#9A5E55', pale:'#F5E8E6', text:'#5A2A24' },
+  sage:       { id:'sage',        label:'Sage',          hex:'#7A9E7E', dark:'#557A59', pale:'#E6F2E7', text:'#2A4A2C' },
+  terracotta: { id:'terracotta',  label:'Terracotta',    hex:'#C47A55', dark:'#9A5A38', pale:'#F5E8DF', text:'#5A2E18' },
+  warmGold:   { id:'warmGold',    label:'Warm Gold',     hex:'#C4A24A', dark:'#9A7D30', pale:'#F5EED8', text:'#5A3E10' },
+  softBlue:   { id:'softBlue',    label:'Soft Blue',     hex:'#6A94B8', dark:'#4A72A0', pale:'#E0EDF5', text:'#1A3A5A' },
+};
+
+const BACKGROUNDS = {
+  creamyWhite:   { id:'creamyWhite',  label:'Creamy White',    group:'solid',    css:(a)=>`background:#FAF8F3;` },
+  warmBeige:     { id:'warmBeige',    label:'Warm Beige',      group:'solid',    css:(a)=>`background:#F5EFE0;` },
+  softBlush:     { id:'softBlush',    label:'Soft Blush',      group:'solid',    css:(a)=>`background:#FAF0EE;` },
+  sageMist:      { id:'sageMist',     label:'Sage Mist',       group:'solid',    css:(a)=>`background:#EEF5EE;` },
+  dotGrid:       { id:'dotGrid',      label:'Dot Grid',        group:'pattern',  css:(a)=>`background:#FAF8F3;background-image:radial-gradient(circle,${a.hex}55 1px,transparent 1px);background-size:24px 24px;` },
+  graphPaper:    { id:'graphPaper',   label:'Graph Paper',     group:'pattern',  css:(a)=>`background:#FDFCF8;background-image:linear-gradient(${a.hex}22 1px,transparent 1px),linear-gradient(90deg,${a.hex}22 1px,transparent 1px),linear-gradient(${a.hex}11 1px,transparent 1px),linear-gradient(90deg,${a.hex}11 1px,transparent 1px);background-size:80px 80px,80px 80px,20px 20px,20px 20px;` },
+  diagonalLines: { id:'diagonalLines',label:'Diagonal Lines',  group:'pattern',  css:(a)=>`background:#FAF8F3;background-image:repeating-linear-gradient(45deg,${a.hex}18 0px,${a.hex}18 1px,transparent 1px,transparent 16px);` },
+  linenTexture:  { id:'linenTexture', label:'Linen Texture',   group:'pattern',  css:(a)=>`background:#F8F4EC;background-image:repeating-linear-gradient(0deg,${a.hex}0E 0px,${a.hex}0E 1px,transparent 1px,transparent 4px),repeating-linear-gradient(90deg,${a.hex}0A 0px,${a.hex}0A 1px,transparent 1px,transparent 6px);` },
+  polkaDots:     { id:'polkaDots',    label:'Polka Dots',      group:'pattern',  css:(a)=>`background:#FAF8F3;background-image:radial-gradient(circle,${a.hex}40 3px,transparent 3px);background-size:32px 32px;` },
+  topographic:   { id:'topographic', label:'Topographic',     group:'pattern',  css:(a)=>`background:#F8F5EE;background-image:radial-gradient(ellipse 80% 60% at 20% 30%,${a.hex}18 0%,transparent 50%),radial-gradient(ellipse 60% 80% at 80% 70%,${a.hex}14 0%,transparent 50%),radial-gradient(ellipse 100% 40% at 50% 50%,${a.hex}0E 0%,transparent 60%),radial-gradient(ellipse 40% 100% at 30% 80%,${a.hex}12 0%,transparent 50%);` },
+  softAurora:    { id:'softAurora',   label:'Soft Aurora',     group:'gradient', css:(a)=>`background:linear-gradient(135deg,#FAF8F3,${a.pale},#F0F8F4,${a.pale});background-size:400% 400%;animation:aurora 8s ease infinite alternate;` },
+  warmGlow:      { id:'warmGlow',     label:'Warm Glow',       group:'gradient', css:(a)=>`background:radial-gradient(ellipse 80% 60% at 50% 0%,${a.pale} 0%,#FAF8F3 60%);` },
+  blushFade:     { id:'blushFade',    label:'Blush Fade',      group:'gradient', css:(a)=>`background:linear-gradient(180deg,${a.pale} 0%,#FAF8F3 50%,#FDFCF9 100%);` },
+};
+
+const LINK_TYPES = [
+  { key:'zoom',    icon:'🎥', label:'Zoom / Meeting Link'  },
+  { key:'youtube', icon:'▶️', label:'YouTube Live'         },
+  { key:'vbg',     icon:'🖼️', label:'Virtual Background'  },
+  { key:'hadir',   icon:'✅', label:'Daftar Hadir'         },
+  { key:'materi',  icon:'📘', label:'Materi / Bahan Rapat' },
+  { key:'notulen', icon:'📋', label:'Notulen Rapat'        },
+  { key:'wa',      icon:'💬', label:'Grup WhatsApp'        },
+  { key:'pretest', icon:'📝', label:'Pre-Test'             },
+  { key:'posttest',icon:'📊', label:'Post-Test'            },
+];
+
+const STATUS_CFG = {
+  live:     { label:'🟢 Live Now',   cls:'status-live'     },
+  upcoming: { label:'Akan Datang',   cls:'status-upcoming' },
+  ended:    { label:'Selesai',       cls:'status-ended'    },
+};
+
+const SPARKLE_POSITIONS = [
+  {l:'5%',t:'10%',a:'floatA',d:'0s'},   {l:'88%',t:'7%',a:'floatB',d:'0.5s'},
+  {l:'3%',t:'65%',a:'floatC',d:'1s'},   {l:'92%',t:'60%',a:'floatA',d:'1.5s'},
+  {l:'15%',t:'4%',a:'floatB',d:'0.3s'}, {l:'78%',t:'3%',a:'floatC',d:'0.8s'},
+  {l:'50%',t:'2%',a:'floatA',d:'1.2s'},
+];
+
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
+let sb = null;
+const state = {
+  meetings:         [],
+  categories:       [],
+  currentView:      'home',
+  currentMeetingId: null,
+  adminAuthed:      false,
+  adminTab:         'list',
+  editingMeeting:   null,
+  filters:          { status:'all', category:'all' },
+  formTheme:        { font:'playfair', accent:'terracotta', bg:'dotGrid', btnStyle:'pills' },
+  tempTheme:        null,
+  themePickerOpen:  false,
+  hpSettingsOpen:   false,
+  // Homepage display settings (persisted in localStorage)
+  hp: loadHpSettings(),
+};
+
+function loadHpSettings() {
+  try {
+    const s = localStorage.getItem('meetinghub_hp');
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  return { theme:'light', font:'playfair', accent:'terracotta', bg:'none' };
+}
+
+function saveHpSettings() {
+  try { localStorage.setItem('meetinghub_hp', JSON.stringify(state.hp)); } catch(e) {}
+}
+
+/* ═══════════════════════════════════════════════
+   SUPABASE SETUP
+═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════
+   ⚙️  KONFIGURASI — EDIT BAGIAN INI
+   Ganti nilai di bawah dengan kredensial Supabase-mu
+═══════════════════════════════════════════════ */
+const CONFIG = {
+  SUPABASE_URL: 'https://ykcqiedtbzdtqyqlotvz.supabase.co',
+  SUPABASE_KEY: 'sb_publishable_07KXBOdlleFkqvGEWD2cNg_utDS7f9R',
+  ADMIN_PASSWORD: 'bpsbabel2026',
+};
+/* ─────────────────────────────────────────────── */
+
+function getAdminPw() { return CONFIG.ADMIN_PASSWORD; }
+function getSbUrl()   { return CONFIG.SUPABASE_URL; }
+function getSbKey()   { return CONFIG.SUPABASE_KEY; }
+
+function initSupabase() {
+  const url = getSbUrl();
+  const key = getSbKey();
+  if (!url || !key) return false;
+  sb = window.supabase.createClient(url, key);
+  return true;
+}
+
+/* ═══════════════════════════════════════════════
+   DATA OPERATIONS
+═══════════════════════════════════════════════ */
+async function fetchCategories() {
+  const { data, error } = await sb.from('meeting_categories').select('*').limit(9999).order('sort_order').order('created_at');
+  if (error) { console.error('fetchCategories:', error); return; }
+  state.categories = data || [];
+}
+
+async function fetchMeetings() {
+  const { data, error } = await sb.from('meetings').select('*').limit(9999).order('sort_order').order('created_at', { ascending:false });
+  if (error) { console.error('fetchMeetings:', error); return; }
+  state.meetings = data || [];
+}
+
+async function fetchAll() {
+  await Promise.all([fetchCategories(), fetchMeetings()]);
+}
+
+async function saveMeeting(payload, id = null) {
+  if (id) {
+    const { error } = await sb.from('meetings').update(payload).eq('id', id);
+    if (error) throw error;
+  } else {
+    const { error } = await sb.from('meetings').insert(payload);
+    if (error) throw error;
+  }
+}
+
+async function deleteMeeting(id) {
+  const { error } = await sb.from('meetings').delete().eq('id', id);
+  if (error) throw error;
+}
+
+async function saveCategory(payload) {
+  const { error } = await sb.from('meeting_categories').insert(payload);
+  if (error) throw error;
+}
+
+async function deleteCategory(id) {
+  const { error } = await sb.from('meeting_categories').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/* ═══════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════ */
+function formatDateID(iso) {
+  if (!iso) return '';
+  const days   = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const d = new Date(iso + 'T12:00:00');
+  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function showToast(msg, duration = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function getTheme(m) {
+  const raw = m.theme || {};
+  return {
+    font:     raw.font     || 'playfair',
+    accent:   raw.accent   || 'terracotta',
+    bg:       raw.bg       || 'dotGrid',
+    btnStyle: raw.btnStyle || 'pills',
+  };
+}
+
+function applyMeetingTheme(theme) {
+  const fp  = FONT_PAIRS[theme.font]  || FONT_PAIRS.playfair;
+  const acc = ACCENTS[theme.accent]   || ACCENTS.terracotta;
+  const bg  = BACKGROUNDS[theme.bg]   || BACKGROUNDS.dotGrid;
+
+  // Background
+  const mp = document.getElementById('meeting-page');
+  mp.style.cssText = bg.css(acc);
+
+  // Text colors
+  const setBps = document.getElementById('mp-bps-text');
+  if (setBps) {
+    setBps.querySelector('b').style.color  = acc.text;
+    setBps.querySelector('span').style.color = acc.dark;
+  }
+  const setSe = document.getElementById('mp-se-text');
+  if (setSe) {
+    setSe.querySelector('span').style.color = acc.text;
+    setSe.querySelector('b').style.color    = acc.hex;
+    setSe.querySelector('b').style.fontFamily = fp.display;
+  }
+  const vd = document.getElementById('mp-vdivider');
+  if (vd) vd.style.background = acc.hex;
+  const hb = document.getElementById('mp-home-btn');
+  if (hb) { hb.style.fontFamily = fp.body; hb.style.color = acc.dark; }
+
+  // Subtitle
+  const sub = document.getElementById('mp-subtitle');
+  if (sub) sub.style.color = acc.dark;
+
+  // Title
+  const title = document.getElementById('mp-title');
+  if (title) {
+    title.style.fontFamily  = fp.display;
+    title.style.fontWeight  = fp.tw;
+    title.style.fontStyle   = fp.ts;
+    title.style.color       = acc.text;
+  }
+
+  // Sparkles
+  document.querySelectorAll('.mp-sparkle').forEach(s => s.style.color = acc.hex);
+
+  // FAB
+  const fab = document.getElementById('theme-fab');
+  if (fab) { fab.style.background = acc.hex; }
+
+  // Chips
+  document.querySelectorAll('.mp-chip').forEach(c => {
+    c.style.background   = acc.hex + '18';
+    c.style.color        = acc.dark;
+    c.style.borderColor  = acc.hex + '30';
+  });
+  document.querySelectorAll('.mp-meta-chip').forEach(c => {
+    c.style.background  = acc.hex + '14';
+    c.style.color       = acc.dark;
+    c.style.borderColor = acc.hex + '28';
+  });
+  document.querySelectorAll('.mp-meta-chip span').forEach(s => s.style.fontFamily = fp.body);
+
+  // Links
+  const fpBody = fp.body;
+  document.querySelectorAll('.link-pill-circle').forEach(c => { c.style.background = acc.hex; c.style.boxShadow = `0 3px 10px ${acc.hex}60`; });
+  document.querySelectorAll('.link-pill-label').forEach(l => {
+    l.style.background   = acc.pale;
+    l.style.color        = acc.text;
+    l.style.borderColor  = acc.hex + '30';
+    l.style.fontFamily   = fpBody;
+  });
+  document.querySelectorAll('.link-table-name').forEach(n => { n.style.color = acc.text; n.style.fontFamily = fpBody; });
+  document.querySelectorAll('.link-table-btn').forEach(b  => { b.style.background = acc.hex; });
+  document.querySelectorAll('.link-table-row').forEach((r,i) => { if(i>0) r.style.borderTopColor = acc.hex + '28'; });
+
+  // Apply btn in picker
+  const applyBtn = document.getElementById('tp-apply-btn');
+  if (applyBtn) applyBtn.style.background = acc.hex;
+}
+
+/* ═══════════════════════════════════════════════
+   HOMEPAGE THEME SYSTEM
+═══════════════════════════════════════════════ */
+function applyHpTheme() {
+  const { theme, font, accent, bg } = state.hp;
+  const t   = HP_THEMES[theme]  || HP_THEMES.light;
+  const fp  = FONT_PAIRS[font]  || FONT_PAIRS.playfair;
+  const acc = ACCENTS[accent]   || ACCENTS.terracotta;
+  const bgDef = HP_BACKGROUNDS[bg] || HP_BACKGROUNDS.none;
+  const r = document.documentElement;
+
+  r.style.setProperty('--hp-bg',           t.bg);
+  r.style.setProperty('--hp-hero',         t.hero);
+  r.style.setProperty('--hp-header',       t.header);
+  r.style.setProperty('--hp-card',         t.card);
+  r.style.setProperty('--hp-border',       t.border);
+  r.style.setProperty('--hp-text',         t.text);
+  r.style.setProperty('--hp-soft',         t.soft);
+  r.style.setProperty('--hp-acc',          acc.hex);
+  r.style.setProperty('--hp-acc-pale',     acc.pale);
+  r.style.setProperty('--hp-acc-dark',     acc.dark);
+  r.style.setProperty('--hp-pill-act',     t.pillAct);
+  r.style.setProperty('--hp-display-font', fp.display);
+  r.style.setProperty('--hp-body-font',    fp.body);
+
+  // Apply background pattern/gradient to homepage body
+  const hp = document.getElementById('homepage');
+  if (hp) {
+    hp.style.background = t.bg;
+    const patternCss = bgDef.css(acc.hex, acc.pale);
+    if (patternCss) {
+      const parts = patternCss.split(';').filter(Boolean);
+      parts.forEach(p => {
+        const [prop, ...val] = p.split(':');
+        if (prop && val.length) hp.style.setProperty(prop.trim(), val.join(':').trim());
+      });
+    } else {
+      hp.style.backgroundImage = '';
+      hp.style.backgroundSize  = '';
+      hp.style.animation       = '';
+    }
+  }
+}
+
+function renderHpSettings() {
+  const { theme, font, accent, bg } = state.hp;
+  const acc = ACCENTS[accent] || ACCENTS.terracotta;
+
+  const bgGroups = [
+    { group:'solid',    label:'Solid' },
+    { group:'pattern',  label:'Pattern (CSS-only)' },
+    { group:'gradient', label:'Gradient Wash' },
+  ];
+
+  document.getElementById('hsp-content').innerHTML = `
+    <!-- Theme -->
+    <div class="hsp-section">
+      <span class="hsp-label">Theme</span>
+      <div class="hsp-theme-grid">
+        ${Object.values(HP_THEMES).map(t => `
+          <div class="hsp-theme-swatch ${theme===t.id?'selected':''}"
+            style="background:${t.card};border-color:${theme===t.id?acc.hex:t.border}"
+            title="${t.label}" onclick="setHpSetting('theme','${t.id}')">
+            <div class="hsp-swatch-dot" style="background:${t.bg};border:1.5px solid ${t.border}"></div>
+            <span style="color:${t.soft};font-size:0.55rem">${t.label}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Font Pairing -->
+    <div class="hsp-section">
+      <span class="hsp-label">Font Pairing</span>
+      ${[
+        { id:'playfair',    name:'Playfair Display', sub:'+ DM Sans',   disp:"'Playfair Display', serif" },
+        { id:'cormorant',   name:'Cormorant Garamond', sub:'+ Jost',    disp:"'Cormorant Garamond', serif" },
+        { id:'baskerville', name:'Libre Baskerville', sub:'+ Nunito',   disp:"'Libre Baskerville', serif" },
+        { id:'fredoka',     name:'Fredoka One',       sub:'+ DM Sans',  disp:"'Fredoka One', cursive" },
+      ].map(f => `
+        <div class="hsp-font-opt ${font===f.id?'selected':''}" onclick="setHpSetting('font','${f.id}')">
+          <div>
+            <div class="hsp-font-name" style="font-family:${f.disp}">${f.name}</div>
+            <div class="hsp-font-sub">${f.sub}</div>
+          </div>
+          ${font===f.id?'<span class="hsp-font-check">✓</span>':''}
+        </div>`).join('')}
+    </div>
+
+    <!-- Accent Color -->
+    <div class="hsp-section">
+      <span class="hsp-label">Accent Color</span>
+      <div class="hsp-accents">
+        ${Object.values(ACCENTS).map(a => `
+          <div class="hsp-acc-swatch ${accent===a.id?'selected':''}"
+            style="background:${a.hex};border-color:${accent===a.id?'#2D2D3A':'transparent'}"
+            title="${a.label}" onclick="setHpSetting('accent','${a.id}')"></div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Background -->
+    <div class="hsp-section">
+      <span class="hsp-label">Background</span>
+      ${bgGroups.map(({group, label}) => `
+        <div class="hsp-bg-group">
+          <div class="hsp-bg-group-label">${label}</div>
+          <div class="hsp-bg-swatches">
+            ${Object.values(HP_BACKGROUNDS).filter(b=>b.group===group).map(b => {
+              const sampleCss = b.css(acc.hex, acc.pale);
+              return `<div class="hsp-bg-swatch ${bg===b.id?'selected':''}"
+                style="background:#FAF8F5;${sampleCss}" title="${b.label}"
+                onclick="setHpSetting('bg','${b.id}')"></div>`;
+            }).join('')}
+          </div>
+        </div>`).join('')}
+    </div>
+  `;
+}
+
+function setHpSetting(key, val) {
+  state.hp[key] = val;
+  saveHpSettings();
+  applyHpTheme();
+  renderHpSettings();
+  renderHomepage();
+}
+
+function openHpSettings() {
+  state.hpSettingsOpen = true;
+  renderHpSettings();
+  document.getElementById('hp-settings-backdrop').classList.add('open');
+}
+
+function closeHpSettings(e) {
+  if (e && e.target !== document.getElementById('hp-settings-backdrop')) return;
+  document.getElementById('hp-settings-backdrop').classList.remove('open');
+  state.hpSettingsOpen = false;
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER — HOMEPAGE
+═══════════════════════════════════════════════ */
+function renderHomepage() {
+  applyHpTheme();
+  const { meetings, categories, filters } = state;
+
+  // Status filters
+  const sfEl = document.getElementById('status-filters');
+  sfEl.innerHTML = [
+    ['all','Semua'],['live','🟢 Live'],['upcoming','Akan Datang'],['ended','Selesai']
+  ].map(([k,l]) =>
+    `<button class="fpill ${filters.status===k?'active':''}" onclick="setFilter('status','${k}')">${l}</button>`
+  ).join('');
+
+  // Category filters
+  const cfEl = document.getElementById('cat-filters');
+  cfEl.innerHTML = `<button class="fpill ${filters.category==='all'?'active':''}" onclick="setFilter('category','all')">📋 Semua</button>` +
+    categories.map(c =>
+      `<button class="fpill ${filters.category===c.id?'active':''}" onclick="setFilter('category','${c.id}')">${c.icon} ${c.name}</button>`
+    ).join('');
+
+  // Filter meetings
+  let list = meetings;
+  if (filters.status   !== 'all') list = list.filter(m => m.status    === filters.status);
+  if (filters.category !== 'all') list = list.filter(m => m.category_id === filters.category);
+
+  const grid = document.getElementById('meetings-grid');
+  if (!list.length) {
+    grid.innerHTML = `<div class="hp-empty"><div class="hp-empty-icon">📭</div>Tidak ada meeting untuk filter ini.</div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map((m, idx) => {
+    const theme = getTheme(m);
+    const fp    = FONT_PAIRS[theme.font]  || FONT_PAIRS.playfair;
+    const acc   = ACCENTS[theme.accent]   || ACCENTS.terracotta;
+    const bg    = BACKGROUNDS[theme.bg]   || BACKGROUNDS.dotGrid;
+    const cat   = categories.find(c => c.id === m.category_id);
+    const sc    = STATUS_CFG[m.status] || STATUS_CFG.upcoming;
+
+    // Subtle deco sparkles in preview band (very minimal, just corners)
+    const decos = `
+      <span class="card-preview-deco" style="left:8%;top:18%;color:${acc.hex};font-size:0.7rem;animation:floatA 3s ease-in-out infinite">✦</span>
+      <span class="card-preview-deco" style="right:8%;top:18%;color:${acc.hex};font-size:0.6rem;animation:floatB 3.5s ease-in-out infinite 0.5s">✦</span>`;
+
+    return `
+    <div class="meeting-card" style="animation-delay:${idx*0.05}s"
+      onclick="openMeeting('${m.id}')"
+      onmouseenter="this.style.borderColor='${acc.hex}40'"
+      onmouseleave="this.style.borderColor=''">
+      <div class="card-accent-bar" style="background:${acc.hex}"></div>
+      <div class="card-preview-band" style="${bg.css(acc)}">
+        ${decos}
+        ${m.image_url ? `<img class="card-preview-img" src="${m.image_url}" onerror="this.style.display='none'">` : `<span style="font-size:2rem;opacity:0.2">📋</span>`}
+      </div>
+      <div class="card-body">
+        <div class="card-top-row">
+          <span class="status-badge ${sc.cls}">${sc.label}</span>
+          ${cat ? `<span class="card-cat-label" style="color:${cat.color}">${cat.icon} ${cat.name}</span>` : ''}
+        </div>
+        ${m.type ? `<div class="card-type-label">${m.type}</div>` : ''}
+        <div class="card-subtitle">${m.subtitle||''}</div>
+        <div class="card-meta">
+          ${[m.date_str?`📅 ${m.date_str}`:'', m.time_str?`🕘 ${m.time_str}`:''].filter(Boolean).join(' · ')}
+        </div>
+        <div class="card-footer">
+          <span class="card-link-count">${(m.links||[]).filter(l=>l.shown).length} tautan tersedia</span>
+          <span class="card-open-btn" style="background:${acc.pale};color:${acc.dark}">Buka →</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER — MEETING PAGE
+═══════════════════════════════════════════════ */
+function renderMeetingPage(m) {
+  const theme = state.tempTheme || getTheme(m);
+  const fp    = FONT_PAIRS[theme.font]  || FONT_PAIRS.playfair;
+  const acc   = ACCENTS[theme.accent]   || ACCENTS.terracotta;
+  const cat   = state.categories.find(c => c.id === m.category_id);
+  const sc    = STATUS_CFG[m.status] || STATUS_CFG.upcoming;
+  const links = (m.links || []).filter(l => l.shown && l.url);
+
+  // Sparkles
+  document.getElementById('mp-sparkles').innerHTML = SPARKLE_POSITIONS.map(p =>
+    `<span class="mp-sparkle" style="left:${p.l};top:${p.t};animation:${p.a} ${3+Math.random()*1.5}s ease-in-out infinite;animation-delay:${p.d}">✦</span>`
+  ).join('');
+
+  // Chips (category + status)
+  document.getElementById('mp-chips-row').innerHTML =
+    (cat ? `<span class="mp-chip" style="background:${acc.hex}18;color:${acc.dark};border-color:${acc.hex}30">${cat.icon} ${cat.name}</span>` : '') +
+    `<span class="mp-chip status-badge ${sc.cls}">${sc.label}</span>`;
+
+  // Subtitle
+  document.getElementById('mp-subtitle').textContent  = `${m.type||''} · ${m.subtitle||''}`;
+  document.getElementById('mp-subtitle').style.color  = acc.dark;
+
+  // Title
+  const titleEl = document.getElementById('mp-title');
+  titleEl.textContent    = m.title || '';
+  titleEl.style.fontFamily = fp.display;
+  titleEl.style.fontWeight = fp.tw;
+  titleEl.style.fontStyle  = fp.ts;
+  titleEl.style.color      = acc.text;
+
+  // Illustration
+  const illus = document.getElementById('mp-illus-area');
+  illus.innerHTML = m.image_url
+    ? `<img class="mp-illus-img" src="${m.image_url}" alt="" onerror="this.style.display='none'">`
+    : `<div class="mp-illus-placeholder">📋</div>`;
+
+  // Meta row
+  const metaItems = [
+    m.date_str  ? `📅 ${m.date_str}`  : '',
+    m.time_str  ? `🕘 ${m.time_str}`  : '',
+    m.platform  ? `📍 ${m.platform}`  : '',
+  ].filter(Boolean);
+  document.getElementById('mp-meta-row').innerHTML = metaItems.map(item =>
+    `<span class="mp-meta-chip" style="font-family:${fp.body};background:${acc.hex}14;color:${acc.dark};border-color:${acc.hex}28">
+      <span>${item}</span>
+    </span>`
+  ).join('');
+
+  // Links
+  const linksArea = document.getElementById('mp-links-area');
+  if (links.length === 0) { linksArea.innerHTML = ''; return; }
+
+  if (theme.btnStyle === 'pills') {
+    linksArea.innerHTML = `<div class="links-pills">${
+      links.map((l, i) => `
+        <a class="link-pill-btn" href="${ensureUrl(l.url)}" target="_blank" rel="noopener" style="animation-delay:${i*0.07}s">
+          <div class="link-pill-circle" style="background:${acc.hex};box-shadow:0 3px 10px ${acc.hex}60">»</div>
+          <div class="link-pill-label" style="font-family:${fp.body};background:${acc.pale};color:${acc.text};border-color:${acc.hex}30">${l.label}</div>
+        </a>`
+      ).join('')
+    }</div>`;
+  } else {
+    linksArea.innerHTML = `<div class="links-table">${
+      links.map((l, i) => `
+        <div class="link-table-row" style="${i>0?`border-top-color:${acc.hex}28`:''}">
+          <span class="link-table-name" style="font-family:${fp.body};color:${acc.text}">${l.label}</span>
+          <a class="link-table-btn" href="${ensureUrl(l.url)}" target="_blank" rel="noopener" style="background:${acc.hex}">Click here</a>
+        </div>`
+      ).join('')
+    }</div>`;
+  }
+
+  // Apply full theme
+  applyMeetingTheme(theme);
+  renderThemePicker(theme);
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER — THEME PICKER
+═══════════════════════════════════════════════ */
+function renderThemePicker(theme) {
+  const acc = ACCENTS[theme.accent] || ACCENTS.terracotta;
+  const bgGroups = [
+    { group:'solid',    label:'Solid' },
+    { group:'pattern',  label:'Pattern' },
+    { group:'gradient', label:'Gradient Wash' },
+  ];
+
+  document.getElementById('tp-content').innerHTML = `
+    <div class="tp-section-label">Font Pairing</div>
+    ${Object.values(FONT_PAIRS).map(fp => `
+      <button class="tp-font-btn ${theme.font===fp.id?'selected':''}"
+        style="border-color:${theme.font===fp.id?acc.hex:'#EEE'}"
+        onclick="updateTempTheme('font','${fp.id}')">
+        <span class="tp-font-name" style="font-family:${fp.display};font-weight:${fp.tw}">${fp.id.charAt(0).toUpperCase()+fp.id.slice(1)}</span>
+        <span class="tp-font-body">${fp.label.split('+')[1]?.trim()||''}</span>
+      </button>`).join('')}
+
+    <div class="tp-section-label">Accent Color</div>
+    <div class="tp-accents">
+      ${Object.values(ACCENTS).map(a => `
+        <div class="tp-accent-swatch ${theme.accent===a.id?'selected':''}"
+          style="background:${a.hex};border-color:${theme.accent===a.id?'#2D2D3A':'transparent'}"
+          title="${a.label}" onclick="updateTempTheme('accent','${a.id}')"></div>`).join('')}
+    </div>
+    <div class="tp-selected-label">${ACCENTS[theme.accent]?.label||''}</div>
+
+    <div class="tp-section-label">Background</div>
+    ${bgGroups.map(({group,label}) => `
+      <div class="tp-bg-group">
+        <div class="tp-bg-group-label">${label}</div>
+        <div class="tp-bg-swatches">
+          ${Object.values(BACKGROUNDS).filter(b=>b.group===group).map(b => {
+            const a = ACCENTS[theme.accent] || ACCENTS.terracotta;
+            return `<div class="tp-bg-swatch ${theme.bg===b.id?'selected':''}"
+              style="${b.css(a)}" title="${b.label}"
+              onclick="updateTempTheme('bg','${b.id}')"></div>`;
+          }).join('')}
+        </div>
+      </div>`).join('')}
+    <div class="tp-selected-label">${BACKGROUNDS[theme.bg]?.label||''}</div>
+
+    <div class="tp-section-label">Button Style</div>
+    <div class="tp-btn-style">
+      <button class="tp-style-btn ${theme.btnStyle==='pills'?'selected':''}" onclick="updateTempTheme('btnStyle','pills')">» Pill</button>
+      <button class="tp-style-btn ${theme.btnStyle==='table'?'selected':''}" onclick="updateTempTheme('btnStyle','table')">| Table</button>
+    </div>
+
+    <button class="tp-apply-btn" id="tp-apply-btn" style="background:${acc.hex}" onclick="applyAndSaveTheme()">
+      ✓ Terapkan Tema
+    </button>`;
+}
+
+function updateTempTheme(key, val) {
+  const m = state.meetings.find(m => m.id === state.currentMeetingId);
+  if (!m) return;
+  state.tempTheme = { ...( state.tempTheme || getTheme(m) ), [key]: val };
+  renderMeetingPage(m);
+  // Keep picker open
+  document.getElementById('theme-picker').classList.add('open');
+}
+
+async function applyAndSaveTheme() {
+  if (!state.tempTheme) return;
+  const id = state.currentMeetingId;
+  try {
+    await sb.from('meetings').update({ theme: state.tempTheme }).eq('id', id);
+    state.meetings = state.meetings.map(m => m.id===id ? {...m,theme:state.tempTheme} : m);
+    state.tempTheme = null;
+    showToast('✓ Tema disimpan');
+  } catch(e) {
+    showToast('❌ Gagal menyimpan tema');
+  }
+  document.getElementById('theme-picker').classList.remove('open');
+  state.themePickerOpen = false;
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER — ADMIN PANEL
+═══════════════════════════════════════════════ */
+function renderAdminBody() {
+  const body = document.getElementById('admin-body');
+  const { adminTab, categories, meetings } = state;
+
+  if (adminTab === 'list') {
+    const formTab = document.getElementById('tab-form');
+    formTab.style.display = 'none';
+    body.innerHTML = `
+      <button onclick="openMeetingForm(null)" style="width:100%;padding:10px;background:#2D3050;color:white;border:none;border-radius:12px;font-weight:700;font-size:0.86rem;margin-bottom:1rem;">
+        ➕ Tambah Meeting Baru
+      </button>
+      ${meetings.length === 0
+        ? '<div style="text-align:center;padding:2rem;color:#CCC;font-size:0.85rem">Belum ada meeting.</div>'
+        : meetings.map(m => {
+            const sc = STATUS_CFG[m.status] || STATUS_CFG.upcoming;
+            return `
+            <div class="admin-meeting-row">
+              <div class="admin-meeting-info">
+                <div class="admin-meeting-subtitle">${m.subtitle||m.title||'(tanpa judul)'}</div>
+                <div class="admin-meeting-meta">
+                  <span class="status-badge ${sc.cls}" style="font-size:0.6rem">${sc.label}</span>
+                  ${m.date_str ? ` · ${m.date_str}` : ''}
+                </div>
+              </div>
+              <div class="admin-meeting-actions">
+                <button class="admin-action-btn admin-edit-btn" title="Edit" onclick="openMeetingForm('${m.id}')">✏️</button>
+                <button class="admin-action-btn admin-delete-btn" title="Hapus" onclick="confirmDeleteMeeting('${m.id}')">🗑️</button>
+              </div>
+            </div>`;
+          }).join('')
+      }`;
+    return;
+  }
+
+  if (adminTab === 'form') {
+    document.getElementById('tab-form').style.display = '';
+    const em = state.editingMeeting;
+    const isEdit = !!em?.id;
+    const ft = state.formTheme;
+    const acc = ACCENTS[ft.accent] || ACCENTS.terracotta;
+
+    // Prepare links: if editing, use existing; else default all empty
+    const existingLinks = em?.links || [];
+    const linkMap = {};
+    existingLinks.forEach(l => { linkMap[l.key] = l; });
+
+    body.innerHTML = `
+      <div style="font-family:'DM Sans',sans-serif">
+        <div class="form-section-title">${isEdit ? '✏️ Edit Meeting' : '➕ Meeting Baru'}</div>
+
+        <div class="form-row">
+          <div class="form-label">Jenis Kegiatan</div>
+          <input class="form-input" id="f-type" placeholder="Briefing, Rapat Koordinasi, Sosialisasi..." value="${em?.type||''}">
+        </div>
+        <div class="form-row">
+          <div class="form-label">Judul Utama (tampil besar)</div>
+          <input class="form-input" id="f-title" placeholder="SENSUS EKONOMI 2026" value="${em?.title||''}">
+        </div>
+        <div class="form-row">
+          <div class="form-label">Subjudul</div>
+          <input class="form-input" id="f-subtitle" placeholder="Briefing Uji Coba Penggunaan CAPI" value="${em?.subtitle||''}">
+        </div>
+        <div class="form-row-2col">
+          <div>
+            <div class="form-label">Tanggal</div>
+            <input class="form-input" id="f-date" type="date" value="${em?.date_iso||''}">
+          </div>
+          <div>
+            <div class="form-label">Waktu</div>
+            <input class="form-input" id="f-time" placeholder="09.00 – 12.00 WIB" value="${em?.time_str||''}">
+          </div>
+        </div>
+        <div class="form-row-2col">
+          <div>
+            <div class="form-label">Platform</div>
+            <select class="form-select" id="f-platform">
+              ${['Zoom Webinar','Zoom Meeting','Google Meet','Microsoft Teams','Lainnya'].map(p =>
+                `<option ${(em?.platform||'Zoom Webinar')===p?'selected':''}>${p}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <div class="form-label">Status</div>
+            <select class="form-select" id="f-status">
+              <option value="upcoming" ${(em?.status||'upcoming')==='upcoming'?'selected':''}>Akan Datang</option>
+              <option value="live"     ${em?.status==='live'    ?'selected':''}>Live Now</option>
+              <option value="ended"    ${em?.status==='ended'   ?'selected':''}>Selesai</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-label">Kategori</div>
+          <select class="form-select" id="f-cat">
+            <option value="">— Tanpa Kategori —</option>
+            ${categories.map(c => `<option value="${c.id}" ${em?.category_id===c.id?'selected':''}>${c.icon} ${c.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-label">🖼️ URL Ilustrasi</div>
+          <input class="form-input" id="f-img" placeholder="https://cdn-icons-png.flaticon.com/512/..." value="${em?.image_url||''}">
+          <div class="form-hint">Paste link gambar dari Flaticon, Freepik, dll.</div>
+        </div>
+
+        <!-- THEME -->
+        <div class="form-theme-area">
+          <div class="form-section-title" style="border:none;padding:0;margin-bottom:10px">🎨 Tema Halaman</div>
+
+          <div class="form-row">
+            <div class="form-label">Font Pairing</div>
+            ${Object.values(FONT_PAIRS).map(fp => `
+              <div class="form-font-option ${ft.font===fp.id?'selected':''}"
+                onclick="setFormTheme('font','${fp.id}')">
+                <span style="font-family:${fp.display};font-weight:${fp.tw};font-size:0.9rem">${fp.label.split('+')[0].trim()}</span>
+                <span style="font-size:0.72rem;color:#AAA">+ ${fp.label.split('+')[1]?.trim()||''}</span>
+              </div>`).join('')}
+          </div>
+
+          <div class="form-row">
+            <div class="form-label">Accent Color</div>
+            <div class="form-accent-row" id="form-accents">
+              ${Object.values(ACCENTS).map(a => `
+                <div class="form-accent-dot ${ft.accent===a.id?'selected':''}"
+                  style="background:${a.hex};border-color:${ft.accent===a.id?'#2D2D3A':'transparent'}"
+                  title="${a.label}" onclick="setFormTheme('accent','${a.id}')"></div>`).join('')}
+            </div>
+            <div class="form-hint">${acc.label}</div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-label">Background</div>
+            ${[{group:'solid',label:'Solid'},{group:'pattern',label:'Pattern'},{group:'gradient',label:'Gradient'}].map(({group,label}) => `
+              <div style="margin-bottom:5px">
+                <div class="form-hint" style="margin-bottom:3px">${label}</div>
+                <div class="form-bg-mini-row">
+                  ${Object.values(BACKGROUNDS).filter(b=>b.group===group).map(b => `
+                    <div class="form-bg-mini ${ft.bg===b.id?'selected':''}"
+                      style="${b.css(acc)}" title="${b.label}"
+                      onclick="setFormTheme('bg','${b.id}')"></div>`).join('')}
+                </div>
+              </div>`).join('')}
+          </div>
+
+          <div class="form-row">
+            <div class="form-label">Button Style</div>
+            <div class="form-btn-style-row">
+              <button class="form-btn-style-opt ${ft.btnStyle==='pills'?'selected':''}" onclick="setFormTheme('btnStyle','pills')">» Pills</button>
+              <button class="form-btn-style-opt ${ft.btnStyle==='table'?'selected':''}" onclick="setFormTheme('btnStyle','table')">| Table</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- LINKS -->
+        <div class="form-section-title">🔗 Tautan</div>
+        ${LINK_TYPES.map(lt => {
+          const existing = linkMap[lt.key] || {};
+          return `
+          <div class="link-form-row">
+            <div class="link-form-icon">${lt.icon}</div>
+            <input class="link-form-input" id="fl-${lt.key}" placeholder="${lt.label}..." value="${existing.url||''}">
+            <label class="link-toggle-label">
+              <input type="checkbox" id="fc-${lt.key}" ${existing.shown?'checked':''}> Tampil
+            </label>
+          </div>`;
+        }).join('')}
+
+        <button class="save-btn" style="background:#2D3050" onclick="submitMeetingForm(${isEdit?`'${em.id}'`:'null'})">
+          💾 ${isEdit ? 'Simpan Perubahan' : 'Buat Meeting'}
+        </button>
+        ${isEdit ? `<button class="delete-confirm-btn" onclick="confirmDeleteMeeting('${em.id}')">🗑️ Hapus Meeting Ini</button>` : ''}
+        <button class="save-btn-secondary" onclick="switchAdminTab('list')">← Kembali ke Daftar</button>
+      </div>`;
+    return;
+  }
+
+  if (adminTab === 'cats') {
+    document.getElementById('tab-form').style.display = 'none';
+    body.innerHTML = `
+      <div style="font-family:'DM Sans',sans-serif">
+        <div class="form-section-title">Kategori yang Ada</div>
+        ${categories.length === 0
+          ? '<div style="text-align:center;padding:1rem;color:#CCC;font-size:0.85rem">Belum ada kategori.</div>'
+          : categories.map(c => `
+            <div class="cat-row">
+              <span>${c.icon}</span>
+              <div class="cat-color-dot" style="background:${c.color}"></div>
+              <span class="cat-name">${c.name}</span>
+              <button class="cat-del-btn" onclick="handleDeleteCategory('${c.id}')">✕</button>
+            </div>`).join('')}
+
+        <div class="form-section-title" style="margin-top:1.25rem">Tambah Kategori Baru</div>
+        <div class="new-cat-row">
+          <input class="form-input" id="nc-icon" value="📋" style="width:48px;text-align:center;padding:9px 4px">
+          <input class="form-input" id="nc-name" placeholder="Nama kategori..." style="flex:1">
+          <input type="color" class="color-picker-input" id="nc-color" value="#C47A55">
+        </div>
+        <button class="save-btn" style="background:#C47A55" onclick="handleAddCategory()">
+          ➕ Tambah Kategori
+        </button>
+      </div>`;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   FORM ACTIONS
+═══════════════════════════════════════════════ */
+// Pastikan URL selalu punya protocol agar tidak dianggap relative path
+function ensureUrl(url) {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+  if (/^(mailto:|tel:|ftp:)/i.test(url)) return url;
+  return 'https://' + url;
+}
+
+function setFormTheme(key, val) {
+  state.formTheme = { ...state.formTheme, [key]: val };
+  renderAdminBody();
+}
+
+function openMeetingForm(id) {
+  if (id) {
+    const m = state.meetings.find(x => x.id === id);
+    if (!m) return;
+    state.editingMeeting = m;
+    state.formTheme = getTheme(m);
+  } else {
+    state.editingMeeting = {};
+    state.formTheme = { font:'playfair', accent:'terracotta', bg:'dotGrid', btnStyle:'pills' };
+  }
+  state.adminTab = 'form';
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-form').classList.add('active');
+  document.getElementById('tab-form').style.display = '';
+  renderAdminBody();
+}
+
+async function submitMeetingForm(editId) {
+  const typeVal     = document.getElementById('f-type').value.trim();
+  const titleVal    = document.getElementById('f-title').value.trim();
+  const subtitleVal = document.getElementById('f-subtitle').value.trim();
+  const dateIso     = document.getElementById('f-date').value;
+  const timeVal     = document.getElementById('f-time').value.trim();
+  const platformVal = document.getElementById('f-platform').value;
+  const statusVal   = document.getElementById('f-status').value;
+  const catVal      = document.getElementById('f-cat').value;
+  const imgVal      = document.getElementById('f-img').value.trim();
+
+  if (!titleVal && !subtitleVal) {
+    showToast('⚠️ Judul wajib diisi'); return;
+  }
+
+  const links = LINK_TYPES.map(lt => ({
+    key:   lt.key,
+    label: lt.label,
+    url:   ensureUrl(document.getElementById(`fl-${lt.key}`)?.value.trim() || ''),
+    shown: document.getElementById(`fc-${lt.key}`)?.checked || false,
+  }));
+
+  const payload = {
+    type:        typeVal,
+    title:       titleVal,
+    subtitle:    subtitleVal,
+    date_str:    dateIso ? formatDateID(dateIso) : '',
+    time_str:    timeVal,
+    platform:    platformVal,
+    status:      statusVal,
+    category_id: catVal || null,
+    image_url:   imgVal,
+    theme:       state.formTheme,
+    links,
+  };
+
+  const btn = document.querySelector('.save-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
+
+  try {
+    await saveMeeting(payload, editId || null);
+    await fetchAll();
+    state.editingMeeting = null;
+    state.adminTab = 'list';
+    document.getElementById('tab-form').style.display = 'none';
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-list').classList.add('active');
+    renderAdminBody();
+    renderHomepage();
+    showToast(editId ? '✓ Meeting diperbarui' : '✓ Meeting ditambahkan');
+  } catch(e) {
+    console.error(e);
+    showToast('❌ Gagal menyimpan. Cek koneksi.');
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Simpan'; }
+  }
+}
+
+function confirmDeleteMeeting(id) {
+  if (!confirm('Yakin ingin menghapus meeting ini?')) return;
+  handleDeleteMeeting(id);
+}
+
+async function handleDeleteMeeting(id) {
+  try {
+    await deleteMeeting(id);
+    await fetchAll();
+    state.adminTab = 'list';
+    document.getElementById('tab-form').style.display = 'none';
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-list').classList.add('active');
+    renderAdminBody();
+    renderHomepage();
+    showToast('🗑️ Meeting dihapus');
+  } catch(e) {
+    showToast('❌ Gagal menghapus');
+  }
+}
+
+async function handleAddCategory() {
+  const icon  = document.getElementById('nc-icon').value.trim() || '📋';
+  const name  = document.getElementById('nc-name').value.trim();
+  const color = document.getElementById('nc-color').value;
+  if (!name) { showToast('⚠️ Nama kategori wajib diisi'); return; }
+  try {
+    await saveCategory({ name, icon, color });
+    await fetchCategories();
+    renderAdminBody();
+    renderHomepage();
+    showToast('✓ Kategori ditambahkan');
+  } catch(e) {
+    showToast('❌ Gagal menambah kategori');
+  }
+}
+
+async function handleDeleteCategory(id) {
+  if (!confirm('Yakin ingin menghapus kategori ini?')) return;
+  try {
+    await deleteCategory(id);
+    await fetchCategories();
+    renderAdminBody();
+    renderHomepage();
+    showToast('🗑️ Kategori dihapus');
+  } catch(e) {
+    showToast('❌ Gagal menghapus');
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   NAVIGATION & UI ACTIONS
+═══════════════════════════════════════════════ */
+function setFilter(type, val) {
+  state.filters[type] = val;
+  renderHomepage();
+}
+
+function openMeeting(id) {
+  const m = state.meetings.find(x => x.id === id);
+  if (!m) return;
+  state.currentView      = 'meeting';
+  state.currentMeetingId = id;
+  state.tempTheme        = null;
+  document.getElementById('homepage').style.display     = 'none';
+  document.getElementById('meeting-page').style.display = 'flex';
+  renderMeetingPage(m);
+  window.scrollTo(0,0);
+}
+
+function goHome() {
+  state.currentView      = 'home';
+  state.currentMeetingId = null;
+  state.tempTheme        = null;
+  document.getElementById('meeting-page').style.display = 'none';
+  document.getElementById('homepage').style.display     = 'block';
+  document.getElementById('theme-picker').classList.remove('open');
+  state.themePickerOpen = false;
+}
+
+function toggleThemePicker() {
+  state.themePickerOpen = !state.themePickerOpen;
+  document.getElementById('theme-picker').classList.toggle('open', state.themePickerOpen);
+}
+
+// Close picker on outside click
+document.addEventListener('click', e => {
+  if (state.themePickerOpen &&
+      !document.getElementById('theme-picker').contains(e.target) &&
+      !document.getElementById('theme-fab').contains(e.target)) {
+    state.themePickerOpen = false;
+    document.getElementById('theme-picker').classList.remove('open');
+  }
+});
+
+/* ═══════════════════════════════════════════════
+   ADMIN AUTH
+═══════════════════════════════════════════════ */
+function handleAdminClick() {
+  if (state.adminAuthed) { openAdmin(); }
+  else { document.getElementById('login-backdrop').classList.add('open'); }
+}
+
+function closeLogin() {
+  document.getElementById('login-backdrop').classList.remove('open');
+  document.getElementById('login-pw').value = '';
+  document.getElementById('login-error').style.display = 'none';
+  document.getElementById('login-input')?.classList.remove('error');
+}
+
+function submitLogin() {
+  const val = document.getElementById('login-pw').value;
+  if (val === getAdminPw()) {
+    state.adminAuthed = true;
+    closeLogin();
+    openAdmin();
+  } else {
+    const inp = document.getElementById('login-pw');
+    const err = document.getElementById('login-error');
+    const card= document.getElementById('login-card');
+    inp.classList.add('error');
+    err.style.display = 'block';
+    card.style.animation = 'none';
+    requestAnimationFrame(() => { card.style.animation = 'shake 0.4s ease'; });
+  }
+}
+
+function openAdmin() {
+  state.adminTab = 'list';
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-list').classList.add('active');
+  document.getElementById('tab-form').style.display = 'none';
+  renderAdminBody();
+  document.getElementById('admin-backdrop').classList.add('open');
+}
+
+function closeAdmin() {
+  document.getElementById('admin-backdrop').classList.remove('open');
+  state.editingMeeting = null;
+}
+
+function switchAdminTab(tab) {
+  state.adminTab = tab;
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  if (tab !== 'form') document.getElementById('tab-form').style.display = 'none';
+  renderAdminBody();
+}
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+async function init() {
+  applyHpTheme(); // Apply saved homepage theme immediately
+  if (!initSupabase()) {
+    document.getElementById('meetings-grid').innerHTML =
+      `<div class="hp-empty"><div class="hp-empty-icon">⚙️</div>Konfigurasi Supabase belum diatur.<br>Edit nilai CONFIG di dalam file HTML.</div>`;
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('homepage').style.display = 'block';
+    return;
+  }
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('homepage').style.display = 'block';
+
+  // Show loading
+  document.getElementById('meetings-grid').innerHTML = '<div class="spinner" style="grid-column:1/-1"></div>';
+
+  try {
+    await fetchAll();
+    renderHomepage();
+  } catch(e) {
+    document.getElementById('meetings-grid').innerHTML =
+      `<div class="hp-empty"><div class="hp-empty-icon">⚠️</div>Gagal memuat data. Cek koneksi Supabase.</div>`;
+    console.error(e);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
